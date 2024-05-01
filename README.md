@@ -107,3 +107,57 @@ Replace `<RegistryName>` with your actual Azure Container Registry name.
 List the repositories in your ACR to verify the upload:
 
 `az acr repository list --name <RegistryName> --output table`
+
+### Deploying Docker Image on Azure Container Instances (ACI)
+
+After pushing your Docker image to Azure Container Registry (ACR), the next step is to deploy this image on Azure Container Instances (ACI) to run your application in the cloud.
+
+#### Create an Azure Container Instance
+
+Here’s how to deploy your Docker image from ACR to ACI:
+
+1.  **Create a Container Instance using Azure CLI**: You will need to specify the image to use from your ACR, the CPU and memory requirements, and any other necessary configurations such as port and environment variables.
+
+```
+# Create the container instance
+az container create \
+  --resource-group <ResourceGroupName> \
+  --name myfastapi \
+  --image <RegistryName>.azurecr.io/myapi:v1 \
+  --cpu 1 --memory 1 \
+  --registry-login-server <RegistryName>.azurecr.io \
+  --registry-username <ACRUsername> \
+  --registry-password <ACRPassword> \
+  --dns-name-label <myfastapi-dns-name-label> \
+  --ports 80
+```
+
+*   Replace `<ResourceGroupName>` with your Azure Resource Group name.
+*   `<RegistryName>`, `<ACRUsername>`, and `<ACRPassword>` should be replaced with your ACR details.
+*   `<myfastapi-dns-name-label>` is a unique DNS name label for your container.
+
+2.  **Configure DNS Name Label**: The DNS name label allows you to access your application via a user-friendly URL. It must be unique within the Azure region.
+
+#### Accessing Your Application
+
+Once the deployment is complete, you can access your FastAPI application through the fully qualified domain name (FQDN). The URL will be structured as follows:
+```
+http://<myfastapi-dns-name-label>.<region>.azurecontainer.io
+```
+Replace `<myfastapi-dns-name-label>` and `<region>` with your specific details.
+
+#### Managing the Container Instance
+
+To manage your container instance, you can use the following Azure CLI commands:
+
+*   **Check the state of the container instance**:
+
+    `az container show --resource-group <ResourceGroupName> --name myfastapi --query instanceView.state`
+    
+*   **View logs of the container instance**:
+
+    `az container logs --resource-group <ResourceGroupName> --name myfastapi`
+    
+*   **Delete the container instance**:
+    
+    `az container delete --resource-group <ResourceGroupName> --name myfastapi`
