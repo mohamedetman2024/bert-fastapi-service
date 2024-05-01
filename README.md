@@ -95,7 +95,10 @@ Tag and push the Docker image:
 
 
 
-`docker tag myapi <RegistryName>.azurecr.io/myapi:v1 docker push <RegistryName>.azurecr.io/myapi:v1`
+```
+docker tag myapi <RegistryName>.azurecr.io/myapi:v1 
+docker push <RegistryName>.azurecr.io/myapi:v1
+```
 
 Replace `<RegistryName>` with your actual Azure Container Registry name.
 
