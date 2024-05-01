@@ -63,6 +63,12 @@ Build the Docker image using:
 
 `docker build -t myapi .`
 
+Testing the Docker Container
+------------------
+
+docker run -d -p 8000:80 --name myapi myapi
+
+
 ### Docker Image Upload to Azure ACR
 
 #### Prerequisites
