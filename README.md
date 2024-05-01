@@ -83,7 +83,7 @@ Login to Azure:
 
 
 
-`az login`
+`az login --use-device-code`
 
 Login to your Azure Container Registry:
 
