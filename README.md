@@ -65,9 +65,9 @@ Build the Docker image using:
 
 Testing the Docker Container
 ------------------
-
+```bash
 docker run -d -p 8000:80 --name myapi myapi
-
+```
 
 ### Docker Image Upload to Azure ACR
 
