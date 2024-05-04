@@ -63,12 +63,6 @@ Build the Docker image using:
 
 `docker build -t myapi .`
 
-Testing the Docker Container
-------------------
-```bash
-docker run -d -p 8000:80 --name myapi myapi
-```
-
 ### Docker Image Upload to Azure ACR
 
 #### Prerequisites
@@ -83,7 +77,7 @@ Login to Azure:
 
 
 
-`az login --use-device-code`
+`az login`
 
 Login to your Azure Container Registry:
 
@@ -95,10 +89,7 @@ Tag and push the Docker image:
 
 
 
-```
-docker tag myapi <RegistryName>.azurecr.io/myapi:v1 
-docker push <RegistryName>.azurecr.io/myapi:v1
-```
+`docker tag myapi <RegistryName>.azurecr.io/myapi:v1 docker push <RegistryName>.azurecr.io/myapi:v1`
 
 Replace `<RegistryName>` with your actual Azure Container Registry name.
 
@@ -108,56 +99,42 @@ List the repositories in your ACR to verify the upload:
 
 `az acr repository list --name <RegistryName> --output table`
 
-### Deploying Docker Image on Azure Container Instances (ACI)
 
-After pushing your Docker image to Azure Container Registry (ACR), the next step is to deploy this image on Azure Container Instances (ACI) to run your application in the cloud.
+# Deploying to Azure Container Instance (ACI)
 
-#### Create an Azure Container Instance
+## Step 1: Configure Authentication Create a service principal to securely interact with Azure services, including pulling images from ACR. This identity allows automation without using your personal credentials. 
 
-Here’s how to deploy your Docker image from ACR to ACI:
+Execute the following command to generate a service principal:  
 
-1.  **Create a Container Instance using Azure CLI**: You will need to specify the image to use from your ACR, the CPU and memory requirements, and any other necessary configurations such as port and environment variables.
+```bash az ad sp create-for-rbac --skip-assignment```
 
-```
-# Create the container instance
-az container create \
-  --resource-group <ResourceGroupName> \
-  --name myfastapi \
-  --image <RegistryName>.azurecr.io/myapi:v1 \
-  --cpu 1 --memory 1 \
-  --registry-login-server <RegistryName>.azurecr.io \
-  --registry-username <ACRUsername> \
-  --registry-password <ACRPassword> \
-  --dns-name-label <myfastapi-dns-name-label> \
-  --ports 80
-```
+This command outputs several key pieces of information, including `appId` and `password`. Record these securely as they will be used to authenticate and pull images.
 
-*   Replace `<ResourceGroupName>` with your Azure Resource Group name.
-*   `<RegistryName>`, `<ACRUsername>`, and `<ACRPassword>` should be replaced with your ACR details.
-*   `<myfastapi-dns-name-label>` is a unique DNS name label for your container.
+Step 2: Grant Access to Your Image
+----------------------------------
 
-2.  **Configure DNS Name Label**: The DNS name label allows you to access your application via a user-friendly URL. It must be unique within the Azure region.
+To allow the newly created service principal to access and pull images from your ACR, assign it the `AcrPull` role. Replace `<appId>` with the `appId` from the previous step:
 
-#### Accessing Your Application
 
-Once the deployment is complete, you can access your FastAPI application through the fully qualified domain name (FQDN). The URL will be structured as follows:
-```
-http://<myfastapi-dns-name-label>.<region>.azurecontainer.io
-```
-Replace `<myfastapi-dns-name-label>` and `<region>` with your specific details.
+`az role assignment create --assignee <appId> --scope myregistry.azurecr.io --role acrpull`
 
-#### Managing the Container Instance
+This step ensures that your service principal has the necessary permissions to pull the container image.
 
-To manage your container instance, you can use the following Azure CLI commands:
+Step 3: Deploy the Container with Port Configuration
+----------------------------------------------------
 
-*   **Check the state of the container instance**:
+Deploy your container instance using the Docker image from ACR. Specify the port to expose, such as 8000, which allows external access to that port:
 
-    `az container show --resource-group <ResourceGroupName> --name myfastapi --query instanceView.state`
-    
-*   **View logs of the container instance**:
 
-    `az container logs --resource-group <ResourceGroupName> --name myfastapi`
-    
-*   **Delete the container instance**:
-    
-    `az container delete --resource-group <ResourceGroupName> --name myfastapi`
+`az container create --resource-group myResourceGroup --name myContainer --image myregistry.azurecr.io/myimage:v1 --cpu 1 --memory 1.5 --registry-login-server myregistry.azurecr.io --registry-username <appId> --registry-password <password> --ports 8000`
+
+Make sure to replace `<appId>` and `<password>` with the credentials obtained from creating your service principal. This command sets up the container and configures the network to allow traffic on port 8000.
+
+Step 4: Check Your Container
+----------------------------
+
+Verify the deployment and accessibility of your container. Check its state and fetch its public IP address:
+
+`az container show --resource-group myResourceGroup --name myContainer --query "{ProvisioningState:provisioningState,IPAddress:ipAddress}"`
+
+This command will provide you with the status of the container instance and its publicly accessible IP address, indicating successful deployment and connectivity.
